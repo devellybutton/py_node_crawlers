@@ -8,16 +8,16 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from login_info import EMAIL, PASSWORD
+import traceback
+from selenium.webdriver.common.action_chains import ActionChains
 
-# 1. momail 로그인 후 코드 추출
+# 1. momail 로그인
 options = Options()
 driver = webdriver.Chrome(options=options)
+wait = WebDriverWait(driver, 15)
 
 driver.get("https://momail.kr")
-WebDriverWait(driver, 10).until(
-    EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="예: example@momail.kr"]'))
-).send_keys(EMAIL)
-
+wait.until(EC.element_to_be_clickable((By.XPATH, '//input[@placeholder="예: example@momail.kr"]'))).send_keys(EMAIL)
 driver.find_element(By.ID, "passwordField").send_keys(PASSWORD)
 driver.find_element(By.XPATH, '//button[@aria-label="Connect"]').click()
 print("[INFO] momail 로그인 완료")
@@ -26,13 +26,14 @@ print("[INFO] momail 로그인 완료")
 print("[INFO] OpenAI 브라우저를 클릭하고, 5초 안에 입력 시작")
 time.sleep(5)
 
-# 이메일 타이핑
-pyautogui.typewrite(EMAIL, interval=0.05)
+# 이메일 타이핑 (안전한 속도)
+pyautogui.typewrite(EMAIL, interval=0.1)
 pyautogui.press("enter")
-time.sleep(2)
+time.sleep(3)
 
-# 비밀번호 타이핑
-pyautogui.typewrite(PASSWORD, interval=0.05)
+# 비밀번호 입력 전 추가 확인
+time.sleep(1)
+pyautogui.typewrite(PASSWORD, interval=0.15)
 pyautogui.press("enter")
 print("[INFO] 로그인 완료, 인증코드 대기")
 
@@ -57,7 +58,7 @@ while time.time() < timeout:
                         verification_code = match.group(1)
                         print("[INFO] 인증코드:", verification_code)
                         break
-            except Exception as e:
+            except Exception:
                 print("[INFO] 형식에 맞지 않는 이메일은 건너뜀")
                 continue
 
@@ -72,11 +73,97 @@ if not verification_code:
     driver.quit()
     exit()
 
-# 4. 인증코드 입력 (브라우저 포커스 필요)
+# 4. 인증코드 입력
 pyperclip.copy(verification_code)
 print("[INFO] 인증코드 복사됨. 브라우저에 포커스한 후 3초 내로 자동 붙여넣기")
 time.sleep(3)
 pyautogui.hotkey('ctrl', 'v')
 pyautogui.press("enter")
+pyperclip.copy("")  # 클립보드 초기화
+print("[INFO] 인증코드 붙여넣기 완료")
 
-driver.quit()
+# 5. OpenAI 내 설정 진입 → 메모리 삭제
+print("[INFO] 로그인 후 설정 진입 시작")
+time.sleep(8)  # 페이지 로딩 완료 대기
+
+# Ctrl + / 단축키로 설정 창 열기
+print("[INFO] Ctrl + / 단축키로 설정 창 열기")
+pyautogui.hotkey('ctrl', '/')
+time.sleep(2)
+
+# ESC 키로 설정 창 닫기
+print("[INFO] ESC 키로 설정 창 닫기")
+pyautogui.press("escape")
+time.sleep(1)
+
+try:
+    # 헤더 클릭으로 인터페이스 포커싱 유도
+    try:
+        header = wait.until(EC.presence_of_element_located((By.ID, 'page-header')))
+        ActionChains(driver).move_to_element(header).click().perform()
+        print("[INFO] 헤더 클릭으로 UI 포커싱 시도 완료")
+        time.sleep(1)
+    except Exception as e:
+        print(f"[ERROR] 헤더 클릭 실패: {e}")
+
+    # 계정 아이콘 클릭
+    try:
+        wait.until(EC.presence_of_element_located((By.ID, 'page-header')))
+        profile_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '[data-testid="profile-button"]')))
+        driver.execute_script("arguments[0].click();", profile_button)
+        print("[INFO] 프로필 메뉴 클릭 성공")
+    except Exception as e:
+        print(f"[ERROR] 프로필 버튼 클릭 실패: {e}")
+
+    # 설정 메뉴 클릭
+    try:
+        wait.until(EC.element_to_be_clickable((
+            By.XPATH, '(//div[contains(@role, "menuitem")])[7]'
+        ))).click()
+
+    except Exception as e:
+        print(f"[ERROR] 계정 버튼 클릭 실패: {e}")
+        traceback.print_exc()
+
+    # "모든 채팅 삭제하기" 버튼 클릭
+    try:
+        wait.until(EC.element_to_be_clickable((
+            By.XPATH, '//button[contains(text(), "모든 채팅 삭제") or contains(text(), "Clear conversations")]'
+        ))).click()
+    except Exception:
+        print("[INFO] 모든 채팅 삭제 버튼 없음")
+
+    # "개인 맞춤 설정" 탭 클릭
+    wait.until(EC.element_to_be_clickable((
+        By.XPATH, '//button[contains(@id, "trigger-Personalization")]'
+    ))).click()
+
+    # "메모리 관리하기" 클릭
+    wait.until(EC.element_to_be_clickable((
+        By.XPATH, '//a[contains(text(), "메모리 관리") or contains(text(), "Manage memory")]'
+    ))).click()
+
+    # "모두 삭제" 버튼 클릭
+    wait.until(EC.element_to_be_clickable((
+        By.XPATH, '//button[contains(text(), "모두 삭제") or contains(text(), "Delete all")]'
+    ))).click()
+
+    # 확인 모달의 "메모리 지우기" 버튼 클릭
+    wait.until(EC.element_to_be_clickable((
+        By.XPATH, '//button[contains(text(), "지우기") or contains(text(), "Confirm delete")]'
+    ))).click()
+
+    # ESC 키로 모든 모달창 닫기
+    print("[INFO] ESC 키로 모달창들 닫기")
+    pyautogui.press("escape")
+    time.sleep(0.5)
+    pyautogui.press("escape")  # 혹시 모를 중첩 모달을 위해 한 번 더
+
+    print("[INFO] 메모리 삭제 및 설정 종료 완료")
+
+except Exception as e:
+    print(f"[ERROR] 설정 처리 중 오류 발생: {e}")
+
+# 마무리
+print("[INFO] 모든 작업 완료")
+# driver.quit()
