@@ -1,0 +1,25 @@
+# Python virtual environment
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Node.js dependencies
+node_modules/
+
+# accounts
+login_info.py
+loginInfo.js
+*accounts.*
+data/accounts.*
+*.xlsx
+
+# Jupyter or IPython stuff
+.ipynb_checkpoints/
+
+# VSCode settings
+.vscode/
+
+# Mac/Linux/Windows 시스템 파일 무시
+.DS_Store
+Thumbs.db
