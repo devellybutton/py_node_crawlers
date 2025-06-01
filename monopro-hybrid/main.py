@@ -97,6 +97,7 @@ try:
 except Exception as e:
     print("[ERROR] profile_button 처리 중 예외 발생:", e)
 
+# 안 되는 구간 디버깅용!
 # pyautogui.screenshot("debug_current.png")
 # print("[DEBUG] 현재 화면을 'debug_current.png'로 저장했습니다")
 
@@ -182,6 +183,39 @@ print("[INFO] ESC 키로 모달창들 닫기")
 pyautogui.press("escape")
 time.sleep(0.5)
 pyautogui.press("escape")
+
+# 로그아웃
+try:
+    location = pyautogui.locateCenterOnScreen("../assets/logout_button.png", confidence=0.8)
+    if location:
+        pyautogui.click(location)
+        time.sleep(1)
+    else:
+        print("[ERROR] logout_button 이미지 못 찾음")
+except Exception as e:
+    print("[ERROR] logout_button 처리 중 예외 발생:", e)
+
+# 모달창에서 로그아웃 버튼 클릭
+try:
+    location = pyautogui.locateCenterOnScreen("../assets/logout_button_black.png", confidence=0.8)
+    if location:
+        pyautogui.click(location)
+        time.sleep(1)
+    else:
+        print("[ERROR] logout_button 이미지 못 찾음")
+except Exception as e:
+    print("[ERROR] logout_button 처리 중 예외 발생:", e)
+
+# 모달창에서 로그인 버튼 클릭
+try:
+    location = pyautogui.locateCenterOnScreen("../assets/login_button_black.png", confidence=0.8)
+    if location:
+        pyautogui.click(location)
+        time.sleep(1)
+    else:
+        print("[ERROR] login_button_black 이미지 못 찾음")
+except Exception as e:
+    print("[ERROR] logout_button_black 처리 중 예외 발생:", e)
 
 # 마무리
 print("[INFO] 모든 작업 완료")
